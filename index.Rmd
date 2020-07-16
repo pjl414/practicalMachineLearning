@@ -1,0 +1,23 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "P. Lombardo"
+date: "7/16/2020"
+output: html_document
+---
+
+```{r}
+urltrain<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+urltest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+# download.file(urltrain,
+#               destfile = "data/train.csv",
+#               method = "curl")
+# download.file(urltest,
+#               destfile = "data/test.csv",
+#               method = "curl")
+```
+
+```{r}
+train<-read.csv("data/train.csv", header = T)[,-1]
+length(names(train))
+```
