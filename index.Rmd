@@ -5,6 +5,21 @@ date: "7/16/2020"
 output: html_document
 ---
 
+```{r ref.label = package_load, echo=FALSE, results='hide', message = FALSE}
+library(dplyr);library(ggplot2);library(caret)
+```
+
+
+
+
+
+
+### Resources
+
+[http://pjl414.github.io/practicalmachinelearning](https://pjl414.github.io/practicalMachineLearning/)
+
+[guide](https://github.com/lgreski/datasciencectacontent/blob/master/markdown/pml-ghPagesSetup.md)
+
 ```{r}
 urltrain<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
 urltest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
@@ -15,9 +30,55 @@ urltest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 # download.file(urltest,
 #               destfile = "data/test.csv",
 #               method = "curl")
+str(train)
 ```
 
 ```{r}
 train<-read.csv("data/train.csv", header = T)[,-1]
 length(names(train))
+
+collect_numerics<-character()
+collect_chars<-character()
+for (i in 1:length(names(train))){
+    nm<-names(train)[i]
+    if (is.numeric(train[,nm])){
+        collect_numerics<-c(collect_numerics,nm)
+    } else {
+        collect_chars<-c(collect_chars,nm)
+    }
+}
+collect_numerics
+train_num<-train %>% select(all_of(collect_numerics),classe)
+train_char<-train %>% select(all_of(collect_chars))
 ```
+158 different possible predictors; we're attempting to classify into 5 different classes:
+```{r}
+train$classe %>% unique()
+train$classe %>% class()
+train$classe<-as.factor(train$classe)
+```
+Probably shouldn't use `user_name` as a predictor since we want to predict on new users?
+
+Many NA values, perhaps do some data imputation to get values for these?
+    * perhaps grouping by some of the naming conventions (i.e. where sensors were place) would be a good idea for helping with data imputation.
+
+```{r}
+train$classe %>% unique()
+```
+```{r}
+names(train)
+```
+Group namings?
+
+* 
+
+
+
+## Citations:
+Many thanks to the researchers of the following work for sharing their data:
+
+> Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+> Read more: [http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI](http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI)
+
+
