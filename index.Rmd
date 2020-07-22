@@ -4,15 +4,221 @@ author: "P. Lombardo"
 date: "7/16/2020"
 output: html_document
 ---
+**Rendered HTML of this report:** [https://pjl414.github.io/practicalMachineLearning/](https://pjl414.github.io/practicalMachineLearning/)
 
-```{r ref.label = package_load, echo=FALSE, results='hide', message = FALSE}
-library(dplyr);library(ggplot2);library(caret)
+**Github Repository for this content:** [https://pjl414.github.io/practicalMachineLearning/](https://github.com/pjl414/practicalMachineLearning)
+
+## Executive Summary
+Our task involved predicting 
+
+* The raw data has 156 predictors, but we removed about 100 because 97% of the values were missing. The final model was fit on 52 variables.
+* The data were pre-processed by centering and scaling all usable variables before fitting models.
+* The final model, a boosted model that used a random forest algorithm to combine predictions from a range of classifiers (see below for specifics), achieved a 99.18% accuracy on a reserved test set with 5,889 unseen observations.  Moreover, it perfectly predicted the classes of 20 observations reserved for a final class assessment.
+
+
+## Building the Classification Model
+
+### Splitting, Exploring, and Pre-processing the Data
+Before exploring the data ([available here](http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI)), we decided to break the data into three pieces: a training set, a validation set for choosing between models, and a testing set to estimate our out-of-sample error.   We reserved 30\% of the data for the final testing set, and then used 70\%/30\% split of the remaining data into a training set and a validation set.
+
+Using the training set, which consisted of almost 10,000 observations, we began exploring the data.  It became immediately clear that certain variables largely consisted of NA values or empty strings.  One hundred different variables in this data set had just under 98\% of the data missing, so we removed these 100 variables from consideration using a loop.  The remaining variables did not have NA values.  
+
+Lastly, we decided to remove `user_name` and the time-stamp variables from consideration.  The goal of the classifier would be to make predictions on new users, so we didn't want the user name to inform the model. Similarly, time-stamp information could, depending on how the experiment was set up, leak some information about the outcome variable. The final data frame has 52 predictors, and we re-cast the outcome variable `classe` as a factor.
+
+Using a loop, we looked at histograms for each of the predictor variables. While some were bimodal or slightly skewed, many had a roughly normal distribution.  As such, we decided that the only pre-processing we would do is centering and scaling.  We created a pre-processing object that would do this based on the training data only, and then applied the *exact same* centering and scaling to both the validation and testing sets.
+
+### Fitting models
+Inspired by the lecture on boosting, I decided to fit a collection of different classifiers and combine their predictions using a random forest model. The individual classifiers were:
+
+* Linear Discriminant Analysis
+* Quadratic Discriminant Analysis
+* Stochastic Gradient Boosting
+* Random Forest
+* Support Vector Machine with a linear kernel
+* Support Vector Machine with a polynomial kernel
+* A One-Versus-All classifier with a logistic regression for individual classifiers
+
+***We took these seven classifiers and combined them using a random forest model to form our final model.***
+
+#### Important notes on fitting the model
+Cross-validation was crucial for fitting many of the models listed above. Specifically, it allowed the `caret` package to fit multiple models using different tuning parameters and select the tuning parameters that achieved the best model performance.  The models coming out of these `caret` package fits were chosen using this cross-validation process and sometimes bootstrapping.
+
+Some models, like the stochastic gradient boosting and random forests, took significant time to fit.  For this reason, we used the `doParallel` package to help "parallelize" the computation; this led to a significant decrease in the total computation time.
+
+The "One-Versus-All" approach of creating a classifier deserves some more explanation.  To create this classifier, we fit logistic regression classifiers for each of the five possible levels of the response (A, B, C, D, E).  For example, our first logistic regression aimed to identify whether that row corresponded to "A" or not; the second tried to identify "B" or not; et cetera.  From these five fitted models, we can predict probabilities for the row being of type A, B, C, D, or E.  To decide on the correct classification, we choose the response value that reported the highest probability.  In order to create this classifier, we did need to write some "homemade" code, which is available in the Appendix.
+
+Lastly, our final model used a boosting approach.  We can think of this as occurring in two stages: first, we use each of the seven models listed above to make predictions for the `classe` response variable based on the data we are considering. In our second step, we then take these predictions and use them as inputs in a random forest model, which outputs our final prediction.  To facilitate this process, we wrote some homemade code to create a data frame with the intermediate predictions. Again, this code is available in the Appendix.
+
+### Choosing a model.
+Before moving forward 
+
+
+
+
+```{r ref.label = "package_load", results = 'hide', echo = FALSE, message =FALSE, warning =FALSE}
+
 ```
 
 
+### Appendix of Code
+Load appropriate packages:
+```{r package_load, echo=TRUE, warning=FALSE, eval=FALSE}
+library(dplyr);library(ggplot2);library(caret);library(doParallel)
+library(e1071); 
+```
+
+Download the appropriate data files:
+```{r download_files, eval=FALSE}
+urltrain<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+urltest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(urltrain, destfile = "data/train.csv", method = "curl")
+
+download.file(urltest, destfile = "data/test.csv", method = "curl")
+```
+
+```{r}
+knitr::knit_exit()
+```
+
+Load data
+```{r data_load, echo=TRUE, warning=FALSE, eval=FALSE}
+df<-read.csv("data/train.csv")[,-1]
+df$classe<-as.factor(df$classe)
+```
+
+Split data into testing, training, and validation sets:
+```{r data_split, echo=TRUE, warning=FALSE, eval=FALSE}
+set.seed(414)
+inTest<-createDataPartition(y = df$classe,
+                             p = 0.3,
+                             list = FALSE)
+testing<-df[inTest,]
+temp<-df[-inTest,]
+inTrain<-createDataPartition(y = temp$classe,
+                             p = 0.7,
+                             list = FALSE)
+training<-temp[inTrain,]
+validation<-temp[-inTrain,]
+```
+Remove uninformative variables; i.e. variables with missing values:
+```{r informative_variables, echo=TRUE, warning=FALSE, eval=FALSE}
+all_predictor_names<-names(df)[-159]
+vars_keep<-character()
+for (item in all_predictor_names){
+    if (is.numeric(df[,item])){
+        if (sum(is.na(df[,item]))==0){
+            vars_keep<-c(vars_keep,item)
+        }
+    } else {
+        if (sum(df[,item]=="")==0){
+            vars_keep<-c(vars_keep,item)
+        }
+    }
+}
+df<-df %>% select(all_of(vars_keep),classe)
+```
+Remove `user_name` and time-stamp variables:
+```{r remove_user_name_etc, echo=TRUE, warning=FALSE, eval=FALSE}
+prediction_vars<-vars_keep[-(1:6)]
+df<-df %>% select(all_of(prediction_vars),classe)
+```
+Generate single variable histogram plots for the remaining variables:
+```{r, eval=FALSE}
+dir.create("Plots/SVhists")
+for (item in pred_names){
+  png(paste("Plots/SVhists/",item,".png",sep=""))
+  hist(training[,item],main = paste(item,"Plot "))
+  dev.off()
+}
+```
+Create a pre-processing object using the training data:
+```{r preproc_options, echo=TRUE, warning=FALSE, eval=FALSE}
+preProc_CentSc<-preProcess(training[,-53],
+                           method = c("center","scale"))
+
+```
+Apply the same pre-processing to the training, validation, and testing sets:
+```{r preproc_test, echo=TRUE, warning=FALSE, eval=FALSE}
+trainingCentSc<-predict(preProc_CentSc, training[,-53])
+validationCentSc<-predict(preProc_CentSc, validation[,-53])
+testingCentSc<-predict(preProc_CentSc, testing[,-53])
+```
 
 
+```{r disc_models, echo=TRUE, warning=FALSE, eval=FALSE}
+ldaModel<-train(x = trainingCentSc, y = training$classe,
+             method = "lda",
+             verbose = FALSE)
 
+qdaModel<-train(x = trainingCentSc, y = training$classe,
+             method = "qda",
+             verbose = FALSE)
+```
+
+```{r parallel, echo=TRUE, warning=FALSE, eval=FALSE}
+registerDoParallel(cores=3)
+```
+
+```{r gbm_and_rf, echo=TRUE, warning=FALSE, eval=FALSE}
+gbmModel<-train(x = trainingCentSc, y = training$classe,
+             method = "gbm",
+             verbose = FALSE)
+
+rfModel<-train(x = trainingCentSc,
+               y= training$classe,
+               method = "rf",
+               verbose = FALSE)
+```
+
+```{r SVMs, echo=TRUE, warning=FALSE, eval=FALSE}
+svmLinModel<-svm(x = trainingCentSc,
+          y = training$classe,
+          type = "C",
+          kernel = "linear")
+
+svmPolyModel<-svm(x = trainingCentSc,
+          y = training$classe,
+          type = "C",
+          kernel = "polynomial")
+```
+
+```{r end_parallel, echo=TRUE, warning=FALSE, eval=FALSE}
+registerDoSEQ()
+```
+
+```{r choose_model_validation, echo=TRUE, warning=FALSE, eval=FALSE}
+get_acc<-function(pred,labels){
+  (confusionMatrix(pred, labels))$overall["Accuracy"]
+}
+
+data.frame(
+  lda = get_acc(predict(ldaModel, validationCentSc),
+                validation$classe),
+  qda = get_acc(predict(qdaModel, validationCentSc),
+                validation$classe),
+  gbm = get_acc(predict(gbmModel, validationCentSc),
+                validation$classe),
+  svmLin = get_acc(predict(svmLinModel, validationCentSc),
+                validation$classe),
+  svmPoly = get_acc(predict(svmPolyModel, validationCentSc),
+                validation$classe),
+  rfModel = get_acc(predict(rfModel, validationCentSc),
+                validation$classe)
+)
+```
+
+```{r out_of_sample_accuracy, echo=TRUE, warning=FALSE, eval=FALSE}
+testingCentSc<-predict(preProc_CentSc, testing[,-53])
+
+confusionMatrix(predict(rfModel, testingCentSc),
+        testing$classe)
+```
+
+
+```{r, echo=TRUE, warning=FALSE}
+sessionInfo()
+```
 
 ### Resources
 
@@ -20,57 +226,8 @@ library(dplyr);library(ggplot2);library(caret)
 
 [guide](https://github.com/lgreski/datasciencectacontent/blob/master/markdown/pml-ghPagesSetup.md)
 
-```{r}
-urltrain<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
-urltest<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
 
-# download.file(urltrain,
-#               destfile = "data/train.csv",
-#               method = "curl")
-# download.file(urltest,
-#               destfile = "data/test.csv",
-#               method = "curl")
-str(train)
-```
 
-```{r}
-train<-read.csv("data/train.csv", header = T)[,-1]
-length(names(train))
-
-collect_numerics<-character()
-collect_chars<-character()
-for (i in 1:length(names(train))){
-    nm<-names(train)[i]
-    if (is.numeric(train[,nm])){
-        collect_numerics<-c(collect_numerics,nm)
-    } else {
-        collect_chars<-c(collect_chars,nm)
-    }
-}
-collect_numerics
-train_num<-train %>% select(all_of(collect_numerics),classe)
-train_char<-train %>% select(all_of(collect_chars))
-```
-158 different possible predictors; we're attempting to classify into 5 different classes:
-```{r}
-train$classe %>% unique()
-train$classe %>% class()
-train$classe<-as.factor(train$classe)
-```
-Probably shouldn't use `user_name` as a predictor since we want to predict on new users?
-
-Many NA values, perhaps do some data imputation to get values for these?
-    * perhaps grouping by some of the naming conventions (i.e. where sensors were place) would be a good idea for helping with data imputation.
-
-```{r}
-train$classe %>% unique()
-```
-```{r}
-names(train)
-```
-Group namings?
-
-* 
 
 
 
