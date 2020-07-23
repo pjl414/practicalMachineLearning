@@ -13,7 +13,7 @@ My task involved predicting the manner in which a user did a certain exercise.  
 
 * The raw data has 156 predictors, but I removed about 100 because 97% of the values were missing in each of these 100 variables. The final model was fit on 52 variables.
 * The data were pre-processed by centering and scaling all usable variables before fitting models.
-* The final model, a boosted model that used a random forest algorithm to combine predictions from a range of classifiers (see below for specifics), achieved a 99.18% accuracy on a reserved test set with 5,889 unseen observations. The 95\% confidence interval for the accuracy is (0.9892, 0.994). 
+* The final model, a boosted model that used a random forest algorithm to combine predictions from a range of classifiers (see below for specifics), achieved a 99.13% accuracy on a reserved test set with 5,889 unseen observations. The 95\% confidence interval for the accuracy is (0.9886, 0.9935). 
 * The Boosted Model perfectly predicted the classes of 20 observations reserved for a final class assessment.
 
 
@@ -55,7 +55,7 @@ Recall that we reserved a validation set of unseen data.  To choose a final mode
 
 <table border=3,align = "center">
 <tr> <th>  </th> <th> &ensp; LDA  &ensp;  </th> <th> &ensp;   QDA   &ensp; </th> <th>   &ensp; GBM   &ensp; </th> <th>  &ensp;  SVM Linear &ensp;   </th> <th>   &ensp; SVM Poly  &ensp;  </th> <th>   &ensp; Logistic 1vAll  &ensp;  </th> <th>   &ensp; Random Forest  &ensp;  </th> <th>  &ensp;  Boosted Model  &ensp;   </th>  </tr>
-  <tr> <td align="center"> &ensp;<strong>Accuracy </strong>&ensp;&ensp;</td> <td align="center"> 0.69 </td> <td align="center"> 0.88 </td> <td align="center"> 0.96 </td> <td align="center"> 0.77 </td> <td align="center"> 0.93 </td> <td align="center"> 0.72 </td> <td align="center"> 0.99 </td> <td align="center"> 0.99 </td> </tr>
+  <tr> <td align="center"> &ensp;<strong>Accuracy </strong>&ensp;&ensp;</td> <td align="center"> 0.69 </td> <td align="center"> 0.88 </td> <td align="center"> 0.95 </td> <td align="center"> 0.77 </td> <td align="center"> 0.93 </td> <td align="center"> 0.72 </td> <td align="center"> 0.99 </td> <td align="center"> 0.99 </td> </tr>
    </table>
 
 With both the random forest and the boosted model performing equally well, and better than the rest, I decided to use the *Boosted Model* for my final model.  Since decision trees, and perhaps even random forests to some extent, have a tendency to overfit the data, I felt the Boosted Model might do better with brand new data that is not similar to the data on which the model was trained.  In other words, I felt the Boosted Model would generalize better.
@@ -63,7 +63,7 @@ With both the random forest and the boosted model performing equally well, and b
 ### Estimating Out-Of-Sample Error on a Testing Set
 As part of the prediction design, I reserved a final testing set of just under 5,900 observations for estimating the out-of-sample error of our final model.  The centering and scaling, identical to what we did to the training set, was applied to the testing set earlier.  Using my homemade function `make_dfCombined()`, I created the intermediate data frame consisting of predictions *on the test set* for each of the seven models listed above.  Lastly, I used the random forest model trained to perform the "boosting" to make our final predictions on the test set. (These two steps together comprise the boosted model.)
 
-Comparing the predictions of the Boosted Model to the actual classifications of the testing set resulted in an accuracy of 99.18\%, with a 95\% confidence interval of (0.9892, 0.994).  
+Comparing the predictions of the Boosted Model to the actual classifications of the testing set resulted in an accuracy of 99.13\%, with a 95\% confidence interval of (0.9886, 0.9935).  
 
 ## Appendix of Code
 Load appropriate packages:
@@ -256,6 +256,7 @@ make_dfCombined<-function(predictorsCentSc,labels){
 }
 ```
 
+Training the random forest for the "boosting" step; in other words, training a random forest model to make predictions based on the predictions of the previous seven models:
 ```{r training_boosted_model, echo = TRUE, eval = FALSE}
 dfC_train<-make_dfCombined(trainingCentSc, training$classe)
 
