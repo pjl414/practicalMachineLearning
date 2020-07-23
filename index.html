@@ -373,47 +373,65 @@ summary {
 <p><strong>Github Repository for this content:</strong> <a href="https://github.com/pjl414/practicalMachineLearning">https://pjl414.github.io/practicalMachineLearning/</a></p>
 <div id="executive-summary" class="section level2">
 <h2>Executive Summary</h2>
-<p>Our task involved predicting</p>
+<p>My task involved predicting the manner in which a user did a certain exercise. These “ways of exercising” were split into five categories and labeled “A”, “B”, “C”, “D”, and “E”, stored in the <code>classe</code> variable of the data <a href="http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI">available here</a>.</p>
 <ul>
-<li>The raw data has 156 predictors, but we removed about 100 because 97% of the values were missing. The final model was fit on 52 variables.</li>
+<li>The raw data has 156 predictors, but I removed about 100 because 97% of the values were missing in each of these 100 variables. The final model was fit on 52 variables.</li>
 <li>The data were pre-processed by centering and scaling all usable variables before fitting models.</li>
-<li>The final model, a boosted model that used a random forest algorithm to combine predictions from a range of classifiers (see below for specifics), achieved a 99.18% accuracy on a reserved test set with 5,889 unseen observations. Moreover, it perfectly predicted the classes of 20 observations reserved for a final class assessment.</li>
+<li>The final model, a boosted model that used a random forest algorithm to combine predictions from a range of classifiers (see below for specifics), achieved a 99.18% accuracy on a reserved test set with 5,889 unseen observations. The 95% confidence interval for the accuracy is (0.9892, 0.994).</li>
+<li>The Boosted Model perfectly predicted the classes of 20 observations reserved for a final class assessment.</li>
 </ul>
 </div>
 <div id="building-the-classification-model" class="section level2">
 <h2>Building the Classification Model</h2>
+<p>All code corresponding to the descriptions in this section is available in the Appendix of this document.</p>
 <div id="splitting-exploring-and-pre-processing-the-data" class="section level3">
 <h3>Splitting, Exploring, and Pre-processing the Data</h3>
-<p>Before exploring the data (<a href="http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI">available here</a>), we decided to break the data into three pieces: a training set, a validation set for choosing between models, and a testing set to estimate our out-of-sample error. We reserved 30% of the data for the final testing set, and then used 70%/30% split of the remaining data into a training set and a validation set.</p>
-<p>Using the training set, which consisted of almost 10,000 observations, we began exploring the data. It became immediately clear that certain variables largely consisted of NA values or empty strings. One hundred different variables in this data set had just under 98% of the data missing, so we removed these 100 variables from consideration using a loop. The remaining variables did not have NA values.</p>
-<p>Lastly, we decided to remove <code>user_name</code> and the time-stamp variables from consideration. The goal of the classifier would be to make predictions on new users, so we didn’t want the user name to inform the model. Similarly, time-stamp information could, depending on how the experiment was set up, leak some information about the outcome variable. The final data frame has 52 predictors, and we re-cast the outcome variable <code>classe</code> as a factor.</p>
-<p>Using a loop, we looked at histograms for each of the predictor variables. While some were bimodal or slightly skewed, many had a roughly normal distribution. As such, we decided that the only pre-processing we would do is centering and scaling. We created a pre-processing object that would do this based on the training data only, and then applied the <em>exact same</em> centering and scaling to both the validation and testing sets.</p>
+<p>Before exploring the data (<a href="http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI">available here</a>), I decided to break the data into three pieces: a training set, a validation set for choosing between models, and a testing set to estimate our out-of-sample error. I reserved 30% of the data for the final testing set, and then used 70%/30% split of the remaining data into a training set and a validation set.</p>
+<p>Using the training set, which consisted of almost 10,000 observations, I began exploring the data. It became immediately clear that certain variables largely consisted of NA values or empty strings. One hundred different variables in this data set had just under 98% of the data missing, so we removed these 100 variables from consideration using a loop. The remaining variables did not have NA values. Both the validation set and the testing set were pared in the exact same way.</p>
+<p>Lastly, I decided to remove <code>user_name</code> and the time-stamp variables from consideration. The goal of the classifier would be to make predictions on new users, so I didn’t want the user name to inform the model. Similarly, time-stamp information could, depending on how the experiment was set up, leak some information about the outcome variable. The final data frames (training/validation/testing) had 52 predictors, and I re-cast the outcome variable <code>classe</code> as a factor.</p>
+<p>Using a loop, I looked at histograms for each of the predictor variables <em>only on the training set</em>. While some were bimodal or slightly skewed, many had a roughly normal distribution. As such, I decided that the only pre-processing I would do is centering and scaling. I created a pre-processing object based on the training data only, and then applied this processing to the training, validation, and testing sets.</p>
 </div>
 <div id="fitting-models" class="section level3">
 <h3>Fitting models</h3>
-<p>Inspired by the lecture on boosting, I decided to fit a collection of different classifiers and combine their predictions using a random forest model. The individual classifiers were:</p>
+<p>Inspired by the lecture on boosting, I decided to fit a collection of different classifiers and consider combining their predictions using a random forest model. The classifiers I considered were:</p>
 <ul>
-<li>Linear Discriminant Analysis</li>
-<li>Quadratic Discriminant Analysis</li>
-<li>Stochastic Gradient Boosting</li>
-<li>Random Forest</li>
-<li>Support Vector Machine with a linear kernel</li>
-<li>Support Vector Machine with a polynomial kernel</li>
-<li>A One-Versus-All classifier with a logistic regression for individual classifiers</li>
+<li>Linear Discriminant Analysis; (LDA)</li>
+<li>Quadratic Discriminant Analysis; (QDA)</li>
+<li>Stochastic Gradient Boosting; (GBM)</li>
+<li>Random Forest;</li>
+<li>Support Vector Machine with a linear kernel; (SVM Linear)</li>
+<li>Support Vector Machine with a polynomial kernel; (SVM Poly)</li>
+<li>A One-Versus-All classifier with logistic regressions for individual classifiers; (Logistic 1vAll)</li>
+<li>A boosted model that combined the predictions from the previous seven classifiers using a random forest model. (Boosted Model)</li>
 </ul>
-<p><strong><em>We took these seven classifiers and combined them using a random forest model to form our final model.</em></strong></p>
 <div id="important-notes-on-fitting-the-model" class="section level4">
 <h4>Important notes on fitting the model</h4>
-<p>Cross-validation was crucial for fitting many of the models listed above. Specifically, it allowed the <code>caret</code> package to fit multiple models using different tuning parameters and select the tuning parameters that achieved the best model performance. The models coming out of these <code>caret</code> package fits were chosen using this cross-validation process.</p>
-<p>Some models, like the stochastic gradient boosting and random forests, took significant time to fit. For this reason, we used the <code>doParallel</code> package to help parallelize the computation; this led to a significant decrease in the total computation time.</p>
-<p>The “One-Versus-All” approach of creating a classifier deserves some more explanation. In this case, we fit a logistic regression classifier for each of the five possible levels of the response (A, B, C, D, E). For example, our first logistic regression tried to identify whether that row corresponded to “A” or not; the second tried to identify “B” or not; et cetera.</p>
+<p>Cross-validation was crucial for fitting many of the models listed above. Specifically, it allowed the <code>caret</code> package to fit multiple models using different tuning parameters and select the tuning parameters that achieved the best model performance. The models coming out of these <code>caret</code> package fits were chosen using this cross-validation process and bootstrapping.</p>
+<p>Some models, like the stochastic gradient boosting and random forests, took significant time to fit. For this reason, I used the <code>doParallel</code> package to help do these computations using parallel processing; this led to a significant decrease in the total computation time.</p>
+<p>The “One-Versus-All” approach of creating a classifier deserves some more explanation. To create this classifier, I fit logistic regression classifiers for each of the five possible levels of the response (A, B, C, D, E). For example, our first logistic regression aimed to identify whether that row corresponded to “A” or not; the second tried to identify “B” or not; et cetera. From these five fitted models, I predicted probabilities for a given row being of each type: A, B, C, D, and E. To decide on the correct classification, I selected the response value that reported the highest probability. In order to create this classifier, I did need to write some “homemade” code, which is available in the Appendix.</p>
+<p>Lastly, my final model used a boosting approach. I like to think of this as occurring in two stages: first, one uses each of the seven models listed above to make predictions for the <code>classe</code> response variable based on the data. In the second step, one takes these predictions and uses them as inputs in a random forest model, which outputs the final prediction. To facilitate this process, I wrote some homemade code to create a data frame with the intermediate predictions. Again, this code is available in the Appendix.</p>
 </div>
 </div>
-<div id="appendix-of-code" class="section level3">
-<h3>Appendix of Code</h3>
+<div id="choosing-a-model." class="section level3">
+<h3>Choosing a model.</h3>
+<p>Recall that we reserved a validation set of unseen data. To choose a final model, we applied the eight fitted models (seven different classification approaches, and one boosted model combining them) to our validation set and compared them by accuracy:</p>
+<table border="3,align" = "center">
+<tr> <th>  </th> <th>   LDA     </th> <th>     QDA     </th> <th>     GBM     </th> <th>     SVM Linear     </th> <th>     SVM Poly     </th> <th>     Logistic 1vAll     </th> <th>     Random Forest     </th> <th>     Boosted Model      </th>  </tr>
+  <tr> <td align="center">  <strong>Accuracy </strong>  </td> <td align="center"> 0.69 </td> <td align="center"> 0.88 </td> <td align="center"> 0.96 </td> <td align="center"> 0.77 </td> <td align="center"> 0.93 </td> <td align="center"> 0.72 </td> <td align="center"> 0.99 </td> <td align="center"> 0.99 </td> </tr>
+   </table>
+<p>With both the random forest and the boosted model performing equally well, and better than the rest, I decided to use the <em>Boosted Model</em> for my final model. Since decision trees, and perhaps even random forests to some extent, have a tendency to overfit the data, I felt the Boosted Model might do better with brand new data that is not similar to the data on which the model was trained. In other words, I felt the Boosted Model would generalize better.</p>
+</div>
+<div id="estimating-out-of-sample-error-on-a-testing-set" class="section level3">
+<h3>Estimating Out-Of-Sample Error on a Testing Set</h3>
+<p>As part of the prediction design, I reserved a final testing set of just under 5,900 observations for estimating the out-of-sample error of our final model. The centering and scaling, identical to what we did to the training set, was applied to the testing set earlier. Using my homemade function <code>make_dfCombined()</code>, I created the intermediate data frame consisting of predictions <em>on the test set</em> for each of the seven models listed above. Lastly, I used the random forest model trained to perform the “boosting” to make our final predictions on the test set. (These two steps together comprise the boosted model.)</p>
+<p>Comparing the predictions of the Boosted Model to the actual classifications of the testing set resulted in an accuracy of 99.18%, with a 95% confidence interval of (0.9892, 0.994).</p>
+</div>
+</div>
+<div id="appendix-of-code" class="section level2">
+<h2>Appendix of Code</h2>
 <p>Load appropriate packages:</p>
 <pre class="r"><code>library(dplyr);library(ggplot2);library(caret);library(doParallel)
-library(e1071); </code></pre>
+library(e1071); library(xtable)</code></pre>
 <p>Download the appropriate data files:</p>
 <pre class="r"><code>urltrain&lt;-&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;
 urltest&lt;-&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;
@@ -421,8 +439,211 @@ urltest&lt;-&quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testin
 download.file(urltrain, destfile = &quot;data/train.csv&quot;, method = &quot;curl&quot;)
 
 download.file(urltest, destfile = &quot;data/test.csv&quot;, method = &quot;curl&quot;)</code></pre>
-<pre class="r"><code>knitr::knit_exit()</code></pre>
+<p>Load data:</p>
+<pre class="r"><code>df&lt;-read.csv(&quot;data/train.csv&quot;)[,-1]
+df$classe&lt;-as.factor(df$classe)</code></pre>
+<p>Split data into testing, training, and validation sets:</p>
+<pre class="r"><code>set.seed(414)
+inTest&lt;-createDataPartition(y = df$classe,
+                             p = 0.3,
+                             list = FALSE)
+testing&lt;-df[inTest,]
+temp&lt;-df[-inTest,]
+inTrain&lt;-createDataPartition(y = temp$classe,
+                             p = 0.7,
+                             list = FALSE)
+training&lt;-temp[inTrain,]
+validation&lt;-temp[-inTrain,]</code></pre>
+<p>Remove uninformative variables; i.e. variables with missing values:</p>
+<pre class="r"><code>all_predictor_names&lt;-names(training)[-159]
+vars_keep&lt;-character()
+for (item in all_predictor_names){
+    if (is.numeric(training[,item])){
+        if (sum(is.na(training[,item]))==0){
+            vars_keep&lt;-c(vars_keep,item)
+        }
+    } else {
+        if (sum(training[,item]==&quot;&quot;)==0){
+            vars_keep&lt;-c(vars_keep,item)
+        }
+    }
+}
+training&lt;-training %&gt;% select(all_of(vars_keep),classe)
+validation&lt;-validation %&gt;% select(all_of(vars_keep),classe)
+testing &lt;-testing %&gt;% select(all_of(vars_keep),classe)</code></pre>
+<p>Remove <code>user_name</code> and time-stamp variables:</p>
+<pre class="r"><code>prediction_vars&lt;-vars_keep[-(1:6)]
+training&lt;-training %&gt;% select(all_of(prediction_vars),classe)
+validation&lt;-validation %&gt;% select(all_of(prediction_vars),classe)
+testing&lt;-testing %&gt;% select(all_of(prediction_vars),classe)</code></pre>
+<p>Generate single variable histogram plots for the remaining variables:</p>
+<pre class="r"><code>dir.create(&quot;Plots/SVhists&quot;)
+for (item in prediction_vars){
+  png(paste(&quot;Plots/SVhists/&quot;,item,&quot;.png&quot;,sep=&quot;&quot;))
+  hist(training[,item],main = paste(item,&quot;Plot &quot;))
+  dev.off()
+}</code></pre>
+<p>Create a pre-processing object using the training data:</p>
+<pre class="r"><code>preProc_CentSc&lt;-preProcess(training[,-53],
+                           method = c(&quot;center&quot;,&quot;scale&quot;))</code></pre>
+<p>Apply the same pre-processing to the training, validation, and testing sets:</p>
+<pre class="r"><code>trainingCentSc&lt;-predict(preProc_CentSc, training[,-53])
+validationCentSc&lt;-predict(preProc_CentSc, validation[,-53])
+testingCentSc&lt;-predict(preProc_CentSc, testing[,-53])</code></pre>
+<p>Fitting the discriminant models:</p>
+<pre class="r"><code>ldaModel&lt;-train(x = trainingCentSc, y = training$classe,
+             method = &quot;lda&quot;,
+             verbose = FALSE)
+
+qdaModel&lt;-train(x = trainingCentSc, y = training$classe,
+             method = &quot;qda&quot;,
+             verbose = FALSE)</code></pre>
+<p>Begin parallel processing:</p>
+<pre class="r"><code>registerDoParallel(cores=3)</code></pre>
+<p>Fitting the stochastic gradient boosting model (GBM) and the random forest model:</p>
+<pre class="r"><code>gbmModel&lt;-train(x = trainingCentSc, y = training$classe,
+             method = &quot;gbm&quot;,
+             verbose = FALSE)
+
+rfModel&lt;-train(x = trainingCentSc,
+               y= training$classe,
+               method = &quot;rf&quot;,
+               verbose = FALSE)</code></pre>
+<p>Fitting the support vector machine models with linear and polynomial kernels:</p>
+<pre class="r"><code>svmLinModel&lt;-svm(x = trainingCentSc,
+          y = training$classe,
+          type = &quot;C&quot;,
+          kernel = &quot;linear&quot;)
+
+svmPolyModel&lt;-svm(x = trainingCentSc,
+          y = training$classe,
+          type = &quot;C&quot;,
+          kernel = &quot;polynomial&quot;)</code></pre>
+<p>Setting up class labels for the One-Versus-All classifier; the label “Z” is used to represent something other than the label of interest:</p>
+<pre class="r"><code>training$A&lt;- as.factor(ifelse(training$classe ==&quot;A&quot;,&quot;A&quot;,&quot;Z&quot;))
+training$B&lt;- as.factor(ifelse(training$classe ==&quot;B&quot;,&quot;B&quot;,&quot;Z&quot;))
+training$C&lt;- as.factor(ifelse(training$classe ==&quot;C&quot;,&quot;C&quot;,&quot;Z&quot;))
+training$D&lt;- as.factor(ifelse(training$classe ==&quot;D&quot;,&quot;D&quot;,&quot;Z&quot;))
+training$E&lt;- as.factor(ifelse(training$classe ==&quot;E&quot;,&quot;E&quot;,&quot;Z&quot;))</code></pre>
+<p>Training the five logistic regression classifiers, one for each letter A through E:</p>
+<pre class="r"><code>modelA&lt;-train(x=trainingCentSc, y = training$A,
+              method = &quot;glm&quot;, family = binomial)
+modelB&lt;-train(x=trainingCentSc, y = training$B,
+              method = &quot;glm&quot;, family = binomial)
+modelC&lt;-train(x=trainingCentSc, y = training$C,
+              method = &quot;glm&quot;, family = binomial)
+modelD&lt;-train(x=trainingCentSc, y = training$D,
+              method = &quot;glm&quot;, family = binomial)
+modelE&lt;-train(x=trainingCentSc, y = training$E,
+              method = &quot;glm&quot;, family = binomial)</code></pre>
+<p>Creating a function to get the predicted probabilities for “A”, “B”, “C”, “D”, and “E”, and then make a final prediction based on which has the highest probability.</p>
+<pre class="r"><code>one_vs_all_pred&lt;-function(modelA, modelB, modelC, modelD, 
+                          modelE, modelF,features, labels){
+  preds&lt;-cbind(
+              predict(modelA, features, type = &quot;prob&quot;)$A,
+              predict(modelB, features, type = &quot;prob&quot;)$B,
+              predict(modelC, features, type = &quot;prob&quot;)$C,
+              predict(modelD, features, type = &quot;prob&quot;)$D,
+               predict(modelE, features, type = &quot;prob&quot;)$E
+              )
+  
+  real_preds&lt;-as.factor(
+    sapply(apply(preds,1,which.max),
+           function(i){ levels(labels)[i]}
+           )
+    )
+  
+  real_preds
+
+}</code></pre>
+<p>Creating a function that organizes all the predictions from these previous seven fitted models:</p>
+<pre class="r"><code>make_dfCombined&lt;-function(predictorsCentSc,labels){
+  df&lt;-data.frame(
+  lda = predict(ldaModel, predictorsCentSc),
+  qda = predict(qdaModel, predictorsCentSc),
+  gbm = predict(gbmModel, predictorsCentSc),
+  svmLin = predict(svmLinModel, predictorsCentSc),
+  svmPoly = predict(svmPolyModel, predictorsCentSc),
+  rfModel = predict(rfModel, predictorsCentSc),
+  lr = one_vs_all_pred(modelA, modelB, modelC, modelD, 
+                          modelE, modelF, predictorsCentSc, labels)
+)
+  
+  df
+}</code></pre>
+<pre class="r"><code>dfC_train&lt;-make_dfCombined(trainingCentSc, training$classe)
+
+combModel&lt;- train(x=dfC_train,
+                  y = training$classe,
+                  method =&quot;rf&quot;,
+                  verbose = FALSE)</code></pre>
+<p>Ending parallel computation:</p>
+<pre class="r"><code>registerDoSEQ()</code></pre>
+<p>Computing the accuracy of the eight models using a validation set:</p>
+<pre class="r"><code>get_acc&lt;-function(pred,labels){
+  (confusionMatrix(pred, labels))$overall[&quot;Accuracy&quot;]
+}
+
+dfCombined_validation&lt;-make_dfCombined(validationCentSc, validation$classe)
+
+validation_results&lt;-data.frame(
+  lda = get_acc(predict(ldaModel, validationCentSc),
+                validation$classe),
+  qda = get_acc(predict(qdaModel, validationCentSc),
+                validation$classe),
+  gbm = get_acc(predict(gbmModel, validationCentSc),
+                validation$classe),
+  svmLin = get_acc(predict(svmLinModel, validationCentSc),
+                validation$classe),
+  svmPoly = get_acc(predict(svmPolyModel, validationCentSc),
+                validation$classe),
+  Logistic = get_acc(one_vs_all_pred(modelA, modelB, modelC, modelD, 
+                          modelE, modelF, validationCentSc, validation$classe),
+                     validation$classe),
+  rfModel = get_acc(predict(rfModel, validationCentSc),
+                validation$classe),
+  combModel = get_acc(predict(combModel, dfCombined_validation),
+                validation$classe)
+)
+validation_results</code></pre>
+<p>Computing an estimate of the Out-Of-Sample Accuracy using a separate test set:</p>
+<pre class="r"><code>testingCentSc&lt;-predict(preProc_CentSc, testing[,-53])
+
+dfC_test&lt;-make_dfCombined(testingCentSc, testing$classe)
+
+confusionMatrix(predict(combModel, dfC_test),
+        testing$classe)</code></pre>
+<p>Session information for this project:</p>
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>## R version 4.0.0 (2020-04-24)
+## Platform: x86_64-apple-darwin17.0 (64-bit)
+## Running under: macOS High Sierra 10.13.6
+## 
+## Matrix products: default
+## BLAS:   /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRblas.dylib
+## LAPACK: /Library/Frameworks/R.framework/Versions/4.0/Resources/lib/libRlapack.dylib
+## 
+## locale:
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## loaded via a namespace (and not attached):
+##  [1] compiler_4.0.0  magrittr_1.5    tools_4.0.0     htmltools_0.4.0
+##  [5] yaml_2.2.1      Rcpp_1.0.4.6    stringi_1.4.6   rmarkdown_2.2  
+##  [9] knitr_1.28      stringr_1.4.0   xfun_0.14       digest_0.6.25  
+## [13] rlang_0.4.6     evaluate_0.14</code></pre>
 </div>
+<div id="citations" class="section level2">
+<h2>Citations:</h2>
+<p>Many thanks to the researchers of the following work for sharing their data:</p>
+<blockquote>
+<p>Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers’ Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.</p>
+</blockquote>
+<blockquote>
+<p>Read more: <a href="http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI">http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI</a></p>
+</blockquote>
 </div>
 
 
