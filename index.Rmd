@@ -6,7 +6,7 @@ output: html_document
 ---
 **Rendered HTML of this report:** [https://pjl414.github.io/practicalMachineLearning/](https://pjl414.github.io/practicalMachineLearning/)
 
-**Github Repository for this content:** [https://pjl414.github.io/practicalMachineLearning/](https://github.com/pjl414/practicalMachineLearning)
+**Github Repository for this content:** [https://github.com/pjl414/practicalMachineLearning](https://github.com/pjl414/practicalMachineLearning)
 
 ## Executive Summary
 My task involved predicting the manner in which a user did a certain exercise.  These "ways of exercising" were split into five categories and labeled "A", "B", "C", "D", and "E", stored in the `classe` variable of the data [available here](http://groupware.les.inf.puc-rio.br/har#sbia_paper_section#ixzz6SOLLlRhI).
